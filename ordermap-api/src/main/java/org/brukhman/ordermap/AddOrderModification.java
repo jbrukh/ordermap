@@ -23,9 +23,8 @@ final class AddOrderModification extends Modification {
 	}
 
 	@Override
-	public void modify(Map<UUID, Order> orders,
-			Map<UUID, Execution> executions, SetMultimap<UUID, UUID> order2exec) {
-		orders.put(order.getId(), order);
+	public void modify(OrderState state) {
+		state.orders.put(order.getId(), order);
 	}
 
 }

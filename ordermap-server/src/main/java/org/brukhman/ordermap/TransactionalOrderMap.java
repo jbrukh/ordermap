@@ -2,12 +2,9 @@ package org.brukhman.ordermap;
 
 import java.util.UUID;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.*;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import com.hazelcast.core.Hazelcast;
-import com.hazelcast.core.IMap;
 
 /**
  * The {@link TransactionalOrderMap} provides the interface
@@ -25,10 +22,7 @@ public final class TransactionalOrderMap {
 	private final static Object lock = new Object();
 	
 	// where the data is stored
-	private final IMap<UUID, Order> orders;
-	private final IMap<UUID, Execution> executions;
-	
-	private final Multimap<UUID, UUID> order2exec;
+	private final OrderState state = new OrderState();
 	
 	/**
 	 * Get the TOM.
@@ -49,13 +43,13 @@ public final class TransactionalOrderMap {
 	 * 
 	 */
 	private TransactionalOrderMap() {
-		orders = Hazelcast.getMap("orderMap");
-		executions = Hazelcast.getMap("executionMap");
+		state.orders = Hazelcast.getMap("orderMap");
+		state.executions = Hazelcast.getMap("executionMap");
 		
 		// TODO: synchronization?
-		order2exec = LinkedHashMultimap.create(); // map orderId => execIds	
-		for (Execution execution : executions.values()) {
-			order2exec.put(execution.getOrderId(), execution.getId());
+		state.order2exec = LinkedHashMultimap.create(); // map orderId => execIds	
+		for (Execution execution : state.executions.values()) {
+			state.order2exec.put(execution.getOrderId(), execution.getId());
 		}
 	}
 
@@ -70,7 +64,7 @@ public final class TransactionalOrderMap {
 		// this goes straight for the data; since
 		// this is the server-side the data should
 		// be available locally
-		return orders.get(id);
+		return state.orders.get(id);
 	}
 	
 	/**
@@ -80,7 +74,7 @@ public final class TransactionalOrderMap {
 	 * @return
 	 */
 	public final Execution getExecution(UUID id) {
-		return executions.get(id);
+		return state.executions.get(id);
 	}
 	
 	/**
@@ -90,12 +84,12 @@ public final class TransactionalOrderMap {
 	 */
 	final void addOrder(Order order) {
 		new AddOrderModification(order)
-					.actOn(orders, executions, null);
+					.actOn(state);
 	}
 	
 	final void deleteOrder(UUID orderId) {
 		new DeleteOrderModification(orderId)
-					.actOn(orders, executions, null);
+					.actOn(state);
 	}
 	
 	/**
@@ -105,7 +99,7 @@ public final class TransactionalOrderMap {
 	 */
 	final void addExecution(Execution execution) {
 		new AddExecutionModification(execution)
-					.actOn(orders, executions, null);
+					.actOn(state);
 	}
 	
 	/**
@@ -114,10 +108,10 @@ public final class TransactionalOrderMap {
 	 * @param executionId
 	 */
 	final void deleteExecution(UUID executionId) {
-		Execution execution = executions.get(executionId);
-		Preconditions.checkNotNull(executionId);
+		Execution execution = state.executions.get(executionId);
+		checkNotNull(executionId);
 		
-		new DeleteExecutionsModification(execution.getOrderId(), Sets.newHashSet(executionId))
-					.actOn(orders, executions, null);
+		new DeleteExecutionsModification(execution.getOrderId(), executionId)
+					.actOn(state);
 	}
 }

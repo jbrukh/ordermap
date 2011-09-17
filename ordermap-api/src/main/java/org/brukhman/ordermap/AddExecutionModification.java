@@ -1,9 +1,5 @@
 package org.brukhman.ordermap;
 
-import java.util.Map;
-import java.util.UUID;
-
-import com.google.common.collect.SetMultimap;
 
 final class AddExecutionModification extends Modification {
 
@@ -23,9 +19,8 @@ final class AddExecutionModification extends Modification {
 	}
 
 	@Override
-	public void modify(Map<UUID, Order> orders,
-			Map<UUID, Execution> executions, SetMultimap<UUID, UUID> order2exec) {
-		executions.put(execution.getId(), execution);
+	public void modify(OrderState state) {
+		state.executions.put(execution.getId(), execution);
 	}
 
 }

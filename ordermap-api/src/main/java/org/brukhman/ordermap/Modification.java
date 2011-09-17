@@ -39,12 +39,11 @@ abstract class Modification {
 	 * and performs the modification.
 	 * @param order2exec TODO
 	 */
-	final void actOn(Map<UUID, Order> orders, Map<UUID, Execution> executions, 
-			SetMultimap<UUID, UUID> order2exec) {
+	final void actOn(OrderState state) {
 		ILock lock = Hazelcast.getLock(lockObject);
 		lock.lock();
 		try {
-			modify(orders, executions, order2exec);
+			modify(state);
 		} finally {
 			lock.unlock();
 		}
@@ -57,7 +56,6 @@ abstract class Modification {
 	 * is the order id.
 	 * @param order2exec TODO
 	 */
-	public abstract void modify(Map<UUID, Order> orders, Map<UUID, Execution> executions, 
-			SetMultimap<UUID, UUID> order2exec);
+	public abstract void modify(OrderState state);
 	
 }
