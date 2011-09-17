@@ -1,11 +1,13 @@
 package org.brukhman.ordermap;
 
+import java.util.Collection;
 import java.util.UUID;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.ILock;
 import com.hazelcast.core.IMap;
-import com.hazelcast.core.MultiMap;
 
 /**
  * The {@link TransactionalOrderMap} provides the interface
@@ -25,7 +27,8 @@ public final class TransactionalOrderMap {
 	// where the data is stored
 	private final IMap<UUID, Order> orders;
 	private final IMap<UUID, Execution> executions;
-	private final MultiMap<UUID, UUID> order2executionIndex;
+	
+	private final Multimap<UUID, UUID> order2exec;
 	
 	/**
 	 * Get the TOM.
@@ -48,7 +51,11 @@ public final class TransactionalOrderMap {
 	private TransactionalOrderMap() {
 		orders = Hazelcast.getMap("orderMap");
 		executions = Hazelcast.getMap("executionMap");
-		order2executionIndex = Hazelcast.getMultiMap("order2execution");
+		
+		order2exec = HashMultimap.create(); // map orderId => execIds	
+		for (Execution execution : executions.values()) {
+			order2exec.put(execution.getOrderId(), execution.getId());
+		}
 	}
 
 	
@@ -81,30 +88,42 @@ public final class TransactionalOrderMap {
 	 * @param order
 	 */
 	final void addOrder(Order order) {
-		UUID orderId = order.getId();
+		new AddOrderModification(order).modify(orders, executions);
+	}
+	
+	final void removeOrder(UUID orderId) {
 		ILock lock = Hazelcast.getLock(orderId);
 		lock.lock();
 		try {
 			// TODO: validation goes here
 			
-			// goes into the cluster transactionally
-			orders.put(orderId, order);
+			
 		} finally {
 			lock.unlock();
 		}
 	}
 	
+	/**
+	 * Add an execution.
+	 * 
+	 * @param execution
+	 */
 	final void addExecution(Execution execution) {
+		new AddExecutionModification(execution).modify(orders, executions);
+	}
+	
+	final void removeExecution(UUID executionId) {
 		// assured at execution creation time
-		UUID orderId = execution.getOrderId();
+		Execution execution = getExecution(executionId);
+		if(execution == null) {
+			return;
+		}
 		
-		ILock lock = Hazelcast.getLock(orderId);
+		ILock lock = Hazelcast.getLock(execution.getOrderId());
 		lock.lock();
 		try {
-			// TODO: validation goes here
-			
-			
-			executions.put(execution.getId(), execution);
+			executions.remove(executionId);
+			order2exec.remove(execution.getOrderId(), executionId);
 		} finally {
 			lock.unlock();
 		}

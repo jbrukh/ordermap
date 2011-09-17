@@ -7,4 +7,11 @@
     <relativePath>..</relativePath>
   </parent>
   <artifactId>ordermap-api</artifactId>
+  <dependencies>
+  	<dependency>
+  		<groupId>com.hazelcast</groupId>
+  		<artifactId>hazelcast</artifactId>
+  		<version>1.9.4</version>
+  	</dependency>
+  </dependencies>
 </project>
