@@ -1,12 +1,12 @@
 package org.brukhman.ordermap;
 
-import java.util.Collection;
 import java.util.UUID;
 
-import com.google.common.collect.HashMultimap;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.hazelcast.core.Hazelcast;
-import com.hazelcast.core.ILock;
 import com.hazelcast.core.IMap;
 
 /**
@@ -52,7 +52,8 @@ public final class TransactionalOrderMap {
 		orders = Hazelcast.getMap("orderMap");
 		executions = Hazelcast.getMap("executionMap");
 		
-		order2exec = HashMultimap.create(); // map orderId => execIds	
+		// TODO: synchronization?
+		order2exec = LinkedHashMultimap.create(); // map orderId => execIds	
 		for (Execution execution : executions.values()) {
 			order2exec.put(execution.getOrderId(), execution.getId());
 		}
@@ -65,7 +66,7 @@ public final class TransactionalOrderMap {
 	 * @param id
 	 * @return
 	 */
-	final Order getOrder(UUID id) {
+	public final Order getOrder(UUID id) {
 		// this goes straight for the data; since
 		// this is the server-side the data should
 		// be available locally
@@ -78,7 +79,7 @@ public final class TransactionalOrderMap {
 	 * @param id
 	 * @return
 	 */
-	final Execution getExecution(UUID id) {
+	public final Execution getExecution(UUID id) {
 		return executions.get(id);
 	}
 	
@@ -88,19 +89,13 @@ public final class TransactionalOrderMap {
 	 * @param order
 	 */
 	final void addOrder(Order order) {
-		new AddOrderModification(order).modify(orders, executions);
+		new AddOrderModification(order)
+					.actOn(orders, executions, null);
 	}
 	
-	final void removeOrder(UUID orderId) {
-		ILock lock = Hazelcast.getLock(orderId);
-		lock.lock();
-		try {
-			// TODO: validation goes here
-			
-			
-		} finally {
-			lock.unlock();
-		}
+	final void deleteOrder(UUID orderId) {
+		new DeleteOrderModification(orderId)
+					.actOn(orders, executions, null);
 	}
 	
 	/**
@@ -109,23 +104,20 @@ public final class TransactionalOrderMap {
 	 * @param execution
 	 */
 	final void addExecution(Execution execution) {
-		new AddExecutionModification(execution).modify(orders, executions);
+		new AddExecutionModification(execution)
+					.actOn(orders, executions, null);
 	}
 	
-	final void removeExecution(UUID executionId) {
-		// assured at execution creation time
-		Execution execution = getExecution(executionId);
-		if(execution == null) {
-			return;
-		}
+	/**
+	 * Delete an executions.
+	 * 
+	 * @param executionId
+	 */
+	final void deleteExecution(UUID executionId) {
+		Execution execution = executions.get(executionId);
+		Preconditions.checkNotNull(executionId);
 		
-		ILock lock = Hazelcast.getLock(execution.getOrderId());
-		lock.lock();
-		try {
-			executions.remove(executionId);
-			order2exec.remove(execution.getOrderId(), executionId);
-		} finally {
-			lock.unlock();
-		}
+		new DeleteExecutionsModification(execution.getOrderId(), Sets.newHashSet(executionId))
+					.actOn(orders, executions, null);
 	}
 }

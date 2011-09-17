@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.SetMultimap;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.ILock;
 
@@ -21,7 +22,7 @@ abstract class Modification {
 	 * it should be something that serializes to something
 	 * standard like a String, UUID, etc.
 	 */
-	private final Object lockObject;
+	private Object lockObject;
 	
 	/**
 	 * Create a new instance.
@@ -36,12 +37,14 @@ abstract class Modification {
 	/**
 	 * Obtains a distributed lock on this order
 	 * and performs the modification.
+	 * @param order2exec TODO
 	 */
-	final void modify(Map<UUID, Order> orders, Map<UUID, Execution> executions) {
+	final void actOn(Map<UUID, Order> orders, Map<UUID, Execution> executions, 
+			SetMultimap<UUID, UUID> order2exec) {
 		ILock lock = Hazelcast.getLock(lockObject);
 		lock.lock();
 		try {
-			modifyAction(orders, executions);
+			modify(orders, executions, order2exec);
 		} finally {
 			lock.unlock();
 		}
@@ -49,9 +52,12 @@ abstract class Modification {
 	
 	/**
 	 * User must fill in the action. Any action undertaken
-	 * in this method is under districuted lock indexed
-	 * by the provided lockObject above.
+	 * in this method is under distributed lock indexed
+	 * by the provided lockObject above. Usually, the lock object
+	 * is the order id.
+	 * @param order2exec TODO
 	 */
-	public abstract void modifyAction(Map<UUID, Order> orders, Map<UUID, Execution> executions);
+	public abstract void modify(Map<UUID, Order> orders, Map<UUID, Execution> executions, 
+			SetMultimap<UUID, UUID> order2exec);
 	
 }

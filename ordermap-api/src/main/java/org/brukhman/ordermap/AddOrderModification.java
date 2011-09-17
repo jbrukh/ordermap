@@ -3,6 +3,8 @@ package org.brukhman.ordermap;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.collect.SetMultimap;
+
 final class AddOrderModification extends Modification {
 
 	/**
@@ -21,8 +23,8 @@ final class AddOrderModification extends Modification {
 	}
 
 	@Override
-	public void modifyAction(Map<UUID, Order> orders,
-			Map<UUID, Execution> executions) {
+	public void modify(Map<UUID, Order> orders,
+			Map<UUID, Execution> executions, SetMultimap<UUID, UUID> order2exec) {
 		orders.put(order.getId(), order);
 	}
 

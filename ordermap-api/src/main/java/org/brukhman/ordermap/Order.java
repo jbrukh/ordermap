@@ -14,7 +14,9 @@ public final class Order {
 	
 	private final String security;
 	private final UUID id;
-	private final boolean isDeleted;
+	
+	/** package-accessible flag for deletion */
+	boolean isDeleted;
 	
 
 	/**
@@ -50,7 +52,12 @@ public final class Order {
 		return id;
 	}
 	
-	final boolean isDeleted() {
+	/**
+	 * Returns whether this order is marked as deleted.
+	 * 
+	 * @return
+	 */
+	public final boolean isDeleted() {
 		return isDeleted;
 	}
 }

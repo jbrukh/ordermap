@@ -10,6 +10,8 @@ public final class Execution {
 	private final int quantity;
 	private final BigDecimal price;
 	
+	boolean isDeleted;
+	
 	/**
 	 * Create a new instance.
 	 * @param orderId
@@ -21,6 +23,20 @@ public final class Execution {
 		this.quantity = quantity;
 		this.price = price;
 		this.id = UUID.randomUUID();
+		this.isDeleted = false;
+	}
+	
+	/**
+	 * Copy constructor.
+	 * 
+	 * @param execution
+	 */
+	Execution(Execution execution) {
+		this.id = execution.id;
+		this.orderId = execution.id;
+		this.quantity = execution.quantity;
+		this.price = execution.price;
+		this.isDeleted = execution.isDeleted;
 	}
 
 	/**
@@ -49,6 +65,13 @@ public final class Execution {
 	 */
 	public final BigDecimal getPrice() {
 		return price;
+	}
+	
+	/**
+	 * @return isDeleted
+	 */
+	public final boolean isDeleted() {
+		return isDeleted;
 	}
 	
 }
