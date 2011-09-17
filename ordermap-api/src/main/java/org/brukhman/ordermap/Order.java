@@ -14,6 +14,7 @@ public final class Order {
 	
 	private final String security;
 	private final UUID id;
+	private final boolean isDeleted;
 	
 
 	/**
@@ -25,8 +26,16 @@ public final class Order {
 		Preconditions.checkNotNull(security);
 		this.security = security;
 		this.id = UUID.randomUUID();
+		this.isDeleted = false;
 	}
 
+	Order(Order order) {
+		Preconditions.checkNotNull(order);
+		this.security = order.security;
+		this.id = order.id;
+		this.isDeleted = order.isDeleted;
+	}
+	
 	/**
 	 * @return the security
 	 */
@@ -39,5 +48,9 @@ public final class Order {
 	 */
 	public final UUID getId() {
 		return id;
+	}
+	
+	final boolean isDeleted() {
+		return isDeleted;
 	}
 }
