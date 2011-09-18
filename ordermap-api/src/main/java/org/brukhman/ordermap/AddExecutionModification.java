@@ -33,11 +33,7 @@ final class AddExecutionModification extends Modification {
 	 */
 	@Override
 	public void modify(OrderState state) {
-		UUID orderId = execution.getOrderId();
-		UUID executionId = execution.getId();
-		
-		
-		state.put(executionId, execution);
+		state.put(execution.getId(), execution);
 	}
 
 }

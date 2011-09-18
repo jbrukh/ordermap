@@ -12,8 +12,9 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
-final class OrderState {
+final class OrderState implements StateReader {
 
 	// main data objects
 	final Map<UUID, Order> 		orders;
@@ -46,11 +47,8 @@ final class OrderState {
 			);
 	}
 	
-	/**
-	 * Put a new execution into the state.
-	 *  
-	 * @param id
-	 * @param order
+	/* (non-Javadoc)
+	 * @see org.brukhman.ordermap.State#put(java.util.UUID, org.brukhman.ordermap.Execution)
 	 */
 	public final void put(UUID id, Execution execution) {
 		UUID orderId = execution.getOrderId();
@@ -63,60 +61,44 @@ final class OrderState {
 		order2exec.put(orderId, executionId);
 	}
 	
-	/**
-	 * Put a new order into the state.
-	 *  
-	 * @param id
-	 * @param order
+	/* (non-Javadoc)
+	 * @see org.brukhman.ordermap.State#put(java.util.UUID, org.brukhman.ordermap.Order)
 	 */
 	public final void put(UUID id, Order order) {
 		orders.put(id, order);
 	}
 	
-	/**
-	 * Resolves the order object.
-	 * 
-	 * @param id
-	 * @return
+	/* (non-Javadoc)
+	 * @see org.brukhman.ordermap.State#getOrder(java.util.UUID)
 	 */
 	public final Order getOrder(UUID id) {
 		return orders.get(id);
 	}
 
 
-	/**
-	 * Resolves the execution object.
-	 * 
-	 * @param id
-	 * @return
+	/* (non-Javadoc)
+	 * @see org.brukhman.ordermap.State#getExecution(java.util.UUID)
 	 */
 	public final Execution getExecution(UUID id) {
 		return executions.get(id);
 	}
 	
-	/**
-	 * Get the orders.
-	 * 
-	 * @return
+	/* (non-Javadoc)
+	 * @see org.brukhman.ordermap.State#getOrders()
 	 */
 	public final List<Order> getOrders() {
 		return Lists.newArrayList(orders.values());
 	}
 	
-	/**
-	 * Get the executions.
-	 * 
-	 * @return
+	/* (non-Javadoc)
+	 * @see org.brukhman.ordermap.State#getExecutions()
 	 */
 	public final List<Execution> getExecutions() {
 		return Lists.newArrayList(executions.values());
 	}
 	
-	/**
-	 * Delete executions.
-	 * 
-	 * @param orderId
-	 * @param executionIds
+	/* (non-Javadoc)
+	 * @see org.brukhman.ordermap.State#deleteExecutions(java.util.UUID, java.util.Set)
 	 */
 	public final void deleteExecutions(UUID orderId, Set<UUID> executionIds) {
 		// resolve these executions and validate
@@ -134,11 +116,16 @@ final class OrderState {
 		}
 		executions.putAll(resolvedExecutions);
 	}
+	
+	/* (non-Javadoc)
+	 * @see org.brukhman.ordermap.State#deleteExecution(java.util.UUID, java.util.UUID)
+	 */
+	public final void deleteExecution(UUID orderId, UUID executionId) {
+		deleteExecutions(orderId, Sets.newHashSet(executionId));
+	}
 
-	/**
-	 * Delete an order.
-	 * 
-	 * @param orderId
+	/* (non-Javadoc)
+	 * @see org.brukhman.ordermap.State#deleteOrder(java.util.UUID)
 	 */
 	public final void deleteOrder(UUID orderId) {
 		Order original = orders.get(orderId);

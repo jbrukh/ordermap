@@ -1,5 +1,6 @@
 package org.brukhman.ordermap;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -9,7 +10,6 @@ import java.util.concurrent.Executors;
 
 
 import static com.google.common.base.Preconditions.*;
-import com.google.common.collect.LinkedHashMultimap;
 import com.hazelcast.core.Hazelcast;
 
 /**
@@ -21,7 +21,7 @@ import com.hazelcast.core.Hazelcast;
  * @author jbrukh
  *
  */
-public final class TransactionalOrderMap {
+public final class TransactionalOrderMap implements StateReader {
 	
 	// tom instance
 	private static TransactionalOrderMap tom;
@@ -67,30 +67,6 @@ public final class TransactionalOrderMap {
 		// start a separate thread that broadcasts modifications to
 		// listeners for asynchronous replication
 		executor.execute(broadcastRunnable);
-	}
-
-	
-	/**
-	 * Resolve an order.
-	 * 
-	 * @param id
-	 * @return
-	 */
-	public final Order getOrder(UUID id) {
-		// this goes straight for the data; since
-		// this is the server-side the data should
-		// be available locally
-		return state.getOrder(id);
-	}
-	
-	/**
-	 * Resolve an execution.
-	 * 
-	 * @param id
-	 * @return
-	 */
-	public final Execution getExecution(UUID id) {
-		return state.getExecution(id);
 	}
 	
 	/**
@@ -139,6 +115,14 @@ public final class TransactionalOrderMap {
 				new DeleteExecutionsModification(execution.getOrderId(), executionId)
 				);
 	}
+	
+	public List<Order> getOrders() {
+		return state.getOrders();
+	}
+
+	public List<Execution> getExecutions() {
+		return state.getExecutions();
+	}
 
 	/**
 	 * Apply the modification and broadcast it.
@@ -185,4 +169,12 @@ public final class TransactionalOrderMap {
 			
 		}
 	};
+
+	public Order getOrder(UUID id) {
+		return state.getOrder(id);
+	}
+
+	public Execution getExecution(UUID id) {
+		return state.getExecution(id);
+	}
 }

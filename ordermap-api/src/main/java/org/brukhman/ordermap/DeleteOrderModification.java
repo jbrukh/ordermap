@@ -1,13 +1,12 @@
 package org.brukhman.ordermap;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.SetMultimap;
-
+/**
+ * 
+ * @author jbrukh
+ *
+ */
 final class DeleteOrderModification extends Modification {
 
 	/**
