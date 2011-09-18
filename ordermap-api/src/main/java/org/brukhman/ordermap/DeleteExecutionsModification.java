@@ -35,23 +35,7 @@ final class DeleteExecutionsModification extends Modification {
 	
 	@Override
 	public void modify(OrderState state) {
-		
-		// resolve these executions and validate
-		Map<UUID, Execution> resolvedExecutions = Modificiations.resolve(executionIds, state.executions);
-		
-		// collect the modified executions
-		for (Execution execution : resolvedExecutions.values()) {
-			Execution deletedExecution = new Execution(execution);
-			checkState(execution.getOrderId() == orderId, 
-					"This execution is not from the specified order: " + execution);
-			deletedExecution.isDeleted = true;
-	
-			// put it in the map, replacing the old versions
-			resolvedExecutions.put(execution.getId(), execution);
-		}
-		
-		// no modification actually goes in until the validation passes
-		state.executions.putAll(resolvedExecutions);
+		state.deleteExecutions(orderId, executionIds);
 	}
 
 }

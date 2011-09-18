@@ -24,7 +24,7 @@ final class AddOrderModification extends Modification {
 
 	@Override
 	public void modify(OrderState state) {
-		state.orders.put(order.getId(), order);
+		state.put(order.getId(), order);
 	}
 
 }

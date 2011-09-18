@@ -36,11 +36,8 @@ final class AddExecutionModification extends Modification {
 		UUID orderId = execution.getOrderId();
 		UUID executionId = execution.getId();
 		
-		Preconditions.checkState(state.orders.containsKey(orderId), 
-				"No parent order found for this execution.");
 		
-		state.executions.put(executionId, execution);
-		state.order2exec.put(orderId, executionId);
+		state.put(executionId, execution);
 	}
 
 }

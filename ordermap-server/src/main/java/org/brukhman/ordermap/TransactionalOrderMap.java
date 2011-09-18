@@ -28,7 +28,7 @@ public final class TransactionalOrderMap {
 	private final static Object lock = new Object();
 	
 	// where the data is stored
-	private final OrderState state = new OrderState();
+	private final OrderState state;
 	private final BlockingQueue<Modification> broadcastQueue = 
 			new ArrayBlockingQueue<Modification>(10000);
 	
@@ -57,14 +57,12 @@ public final class TransactionalOrderMap {
 	 * 
 	 */
 	private TransactionalOrderMap() {
-		state.orders = Hazelcast.getMap("orderMap");
-		state.executions = Hazelcast.getMap("executionMap");
+		state = new OrderState( 
+							Hazelcast.<UUID, Order> getMap("orderMap"),
+							Hazelcast.<UUID, Execution> getMap("executionMap")
+							);
 		
-		// TODO: synchronization?
-		state.order2exec = LinkedHashMultimap.create(); // map orderId => execIds	
-		for (Execution execution : state.executions.values()) {
-			state.order2exec.put(execution.getOrderId(), execution.getId());
-		}
+		
 		
 		// start a separate thread that broadcasts modifications to
 		// listeners for asynchronous replication
@@ -82,7 +80,7 @@ public final class TransactionalOrderMap {
 		// this goes straight for the data; since
 		// this is the server-side the data should
 		// be available locally
-		return state.orders.get(id);
+		return state.getOrder(id);
 	}
 	
 	/**
@@ -92,7 +90,7 @@ public final class TransactionalOrderMap {
 	 * @return
 	 */
 	public final Execution getExecution(UUID id) {
-		return state.executions.get(id);
+		return state.getExecution(id);
 	}
 	
 	/**
@@ -134,7 +132,7 @@ public final class TransactionalOrderMap {
 	 * @param executionId
 	 */
 	final void deleteExecution(UUID executionId) {
-		Execution execution = state.executions.get(executionId);
+		Execution execution = state.getExecution(executionId);
 		checkNotNull(executionId);
 		
 		applyAndBroadcast(

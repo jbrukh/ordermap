@@ -27,21 +27,7 @@ final class DeleteOrderModification extends Modification {
 
 	@Override
 	public void modify(OrderState state) {
-		Order original = state.orders.get(orderId);
-		Preconditions.checkNotNull(original);
-		
-		// create a deleted version
-		Order order = new Order(original);
-		order.isDeleted = true;
-		
-		// supersedes the previous version
-		state.orders.put(order.getId(), order);
-		
-		// find the child executions
-		Set<UUID> children = state.order2exec.get(orderId);
-		
-		new DeleteExecutionsModification(orderId, children)
-				.actOn(state);
+		state.deleteOrder(orderId);
 	}
 
 }

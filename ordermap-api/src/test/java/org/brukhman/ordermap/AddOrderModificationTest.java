@@ -10,7 +10,7 @@ public class AddOrderModificationTest {
 	
 	@Test
 	public void test() {
-		OrderState state = OrderState.emptryOrderState();
+		OrderState state = new OrderState();
 		
 		new AddOrderModification(order).actOn(state);
 		assertTrue(state.orders.containsKey(order.getId()));

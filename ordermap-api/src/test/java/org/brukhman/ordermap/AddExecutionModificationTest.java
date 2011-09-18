@@ -13,7 +13,7 @@ public class AddExecutionModificationTest {
 	private final static Order order = new Order("AAPL");
 	private final static Execution execution = new Execution(order.getId(), 100, 
 									BigDecimal.valueOf(200.00d));
-	private final OrderState state = OrderState.emptryOrderState();
+	private final OrderState state = new OrderState();
 
 	@Before
 	public void setUp() throws Exception {
