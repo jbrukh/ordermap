@@ -1,6 +1,16 @@
 package org.brukhman.ordermap;
 
+import java.util.UUID;
 
+import com.google.common.base.Preconditions;
+
+/**
+ * Add an execution. The parent order of this execution
+ * must already exist in the state, or an {@link IllegalStateException}
+ * is thrown.
+ * 
+ * @author jbrukh
+ */
 final class AddExecutionModification extends Modification {
 
 	/**
@@ -18,9 +28,19 @@ final class AddExecutionModification extends Modification {
 		this.execution = execution;
 	}
 
+	/**
+	 * @throws IllegalStateException if the parent order doesn't exist
+	 */
 	@Override
 	public void modify(OrderState state) {
-		state.executions.put(execution.getId(), execution);
+		UUID orderId = execution.getOrderId();
+		UUID executionId = execution.getId();
+		
+		Preconditions.checkState(state.orders.containsKey(orderId), 
+				"No parent order found for this execution.");
+		
+		state.executions.put(executionId, execution);
+		state.order2exec.put(orderId, executionId);
 	}
 
 }
