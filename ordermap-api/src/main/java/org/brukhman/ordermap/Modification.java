@@ -1,12 +1,6 @@
 package org.brukhman.ordermap;
 
-import java.util.Map;
-import java.util.UUID;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.SetMultimap;
-import com.hazelcast.core.Hazelcast;
-import com.hazelcast.core.ILock;
+import static com.google.common.base.Preconditions.*;
 
 /**
  * Base class for modifications.
@@ -30,23 +24,20 @@ abstract class Modification {
 	 * @param orderId
 	 */
 	Modification(Object lock) {
-		Preconditions.checkNotNull(lock);
+		checkNotNull(lock);
 		this.lockObject = lock;
 	}
 	
 	/**
-	 * Obtains a distributed lock on this order
-	 * and performs the modification.
+	 * Synchronizes onto the string representation of the
+	 * lock object.
+	 * 
 	 * @param order2exec TODO
 	 */
 	final void actOn(OrderState state) {
-		ILock lock = Hazelcast.getLock(lockObject);
-		lock.lock();
-		try {
+		synchronized(lockObject.toString().intern()) {
 			modify(state);
-		} finally {
-			lock.unlock();
-		}
+		}	
 	}
 	
 	/**
@@ -58,4 +49,18 @@ abstract class Modification {
 	 */
 	public abstract void modify(OrderState state);
 	
+	/**
+	 * A listener for {@link Modification}s.
+	 * 
+	 * @author jbrukh
+	 *
+	 */
+	public static interface Listener {
+		/**
+		 * A modification occurred.
+		 *  
+		 * @param modification
+		 */
+		void modificationOccurred(Modification modification);
+	}
 }

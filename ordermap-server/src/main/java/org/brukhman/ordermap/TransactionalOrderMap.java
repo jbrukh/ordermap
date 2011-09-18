@@ -1,6 +1,12 @@
 package org.brukhman.ordermap;
 
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 
 import static com.google.common.base.Preconditions.*;
 import com.google.common.collect.LinkedHashMultimap;
@@ -23,7 +29,15 @@ public final class TransactionalOrderMap {
 	
 	// where the data is stored
 	private final OrderState state = new OrderState();
+	private final BlockingQueue<Modification> broadcastQueue = 
+			new ArrayBlockingQueue<Modification>(10000);
 	
+	// listeners
+	private final CopyOnWriteArrayList<Modification.Listener> listeners = 
+			new CopyOnWriteArrayList<Modification.Listener>();
+	
+	private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
 	/**
 	 * Get the TOM.
 	 * 
@@ -51,6 +65,10 @@ public final class TransactionalOrderMap {
 		for (Execution execution : state.executions.values()) {
 			state.order2exec.put(execution.getOrderId(), execution.getId());
 		}
+		
+		// start a separate thread that broadcasts modifications to
+		// listeners for asynchronous replication
+		executor.execute(broadcastRunnable);
 	}
 
 	
@@ -83,13 +101,20 @@ public final class TransactionalOrderMap {
 	 * @param order
 	 */
 	final void addOrder(Order order) {
-		new AddOrderModification(order)
-					.actOn(state);
+		applyAndBroadcast(
+				new AddOrderModification(order)
+				);
 	}
 	
+	/**
+	 * Delete an order.
+	 * 
+	 * @param orderId
+	 */
 	final void deleteOrder(UUID orderId) {
-		new DeleteOrderModification(orderId)
-					.actOn(state);
+		applyAndBroadcast(
+				new DeleteOrderModification(orderId)
+				);
 	}
 	
 	/**
@@ -98,8 +123,9 @@ public final class TransactionalOrderMap {
 	 * @param execution
 	 */
 	final void addExecution(Execution execution) {
-		new AddExecutionModification(execution)
-					.actOn(state);
+		applyAndBroadcast(
+				new AddExecutionModification(execution)
+				);
 	}
 	
 	/**
@@ -111,7 +137,54 @@ public final class TransactionalOrderMap {
 		Execution execution = state.executions.get(executionId);
 		checkNotNull(executionId);
 		
-		new DeleteExecutionsModification(execution.getOrderId(), executionId)
-					.actOn(state);
+		applyAndBroadcast(
+				new DeleteExecutionsModification(execution.getOrderId(), executionId)
+				);
 	}
+
+	/**
+	 * Apply the modification and broadcast it.
+	 * 
+	 * @param modification
+	 */
+	private final void applyAndBroadcast(Modification modification) {
+		modification.actOn(state);
+		broadcastQueue.add(modification);
+	}
+	
+	/**
+	 * Add a listener for modifications.
+	 * 
+	 * @param listener
+	 */
+	public final void addListener(Modification.Listener listener) {
+		listeners.add(listener);
+	}
+	
+	/**
+	 * Remove a listener for modifications.
+	 * 
+	 * @param listener
+	 */
+	public final void removeListener(Modification.Listener listener) {
+		listeners.remove(listener);
+	}
+	
+	/**
+	 * 
+	 */
+	private final Runnable broadcastRunnable = new Runnable() {
+		public void run() {
+			
+			while(!Thread.interrupted()) {
+				try {
+					Modification modification = broadcastQueue.take();
+					for (Modification.Listener listener : listeners) {
+						listener.modificationOccurred(modification);
+					}
+				} catch (InterruptedException e) {}
+			}
+			
+		}
+	};
 }
