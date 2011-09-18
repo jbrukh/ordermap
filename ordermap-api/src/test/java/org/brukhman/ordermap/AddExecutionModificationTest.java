@@ -25,12 +25,12 @@ public class AddExecutionModificationTest {
 		// different order
 		Execution foreign = new Execution(UUID.randomUUID(), 100, 
 				BigDecimal.valueOf(200.00d));
-		new AddExecutionModification(foreign).actOn(state);
+		new AddExecutionModification(foreign).applyTo(state);
 	}
 	
 	@Test
 	public void testAdd() {
-		new AddExecutionModification(execution).actOn(state);
+		new AddExecutionModification(execution).applyTo(state);
 		assertTrue(state.orders.size()==1);
 		assertTrue(state.executions.size()==1);
 		assertTrue(state.executions.containsKey(execution.getId()));

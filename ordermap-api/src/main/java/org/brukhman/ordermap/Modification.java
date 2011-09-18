@@ -1,7 +1,5 @@
 package org.brukhman.ordermap;
 
-import static com.google.common.base.Preconditions.*;
-
 /**
  * Base class for modifications.
  * 
@@ -11,21 +9,11 @@ import static com.google.common.base.Preconditions.*;
 abstract class Modification {
 	
 	/**
-	 * Modifications must specify an object to lock
-	 * upon; since this will be a distributed lock,
-	 * it should be something that serializes to something
-	 * standard like a String, UUID, etc.
-	 */
-	private Object lockObject;
-	
-	/**
 	 * Create a new instance.
 	 * 
 	 * @param orderId
 	 */
-	Modification(Object lock) {
-		checkNotNull(lock);
-		this.lockObject = lock;
+	Modification() {
 	}
 	
 	/**
@@ -34,10 +22,8 @@ abstract class Modification {
 	 * 
 	 * @param order2exec TODO
 	 */
-	final void actOn(OrderState state) {
-		synchronized(lockObject.toString().intern()) {
+	final void applyTo(OrderState state) {		
 			modify(state);
-		}	
 	}
 	
 	/**

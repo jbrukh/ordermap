@@ -130,7 +130,7 @@ public final class TransactionalOrderMap implements StateReader {
 	 * @param modification
 	 */
 	private final void applyAndBroadcast(Modification modification) {
-		modification.actOn(state);
+		modification.applyTo(state);
 		broadcastQueue.add(modification);
 	}
 	
@@ -156,8 +156,7 @@ public final class TransactionalOrderMap implements StateReader {
 	 * 
 	 */
 	private final Runnable broadcastRunnable = new Runnable() {
-		public void run() {
-			
+		public void run() {			
 			while(!Thread.interrupted()) {
 				try {
 					Modification modification = broadcastQueue.take();

@@ -1,8 +1,6 @@
 package org.brukhman.ordermap;
 
-import java.util.UUID;
-
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.*;
 
 /**
  * Add an execution. The parent order of this execution
@@ -24,7 +22,7 @@ final class AddExecutionModification extends Modification {
 	 * @param order
 	 */
 	public AddExecutionModification(Execution execution) {
-		super(execution.getOrderId());
+		checkNotNull(execution);
 		this.execution = execution;
 	}
 

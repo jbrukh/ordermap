@@ -2,6 +2,8 @@ package org.brukhman.ordermap;
 
 import java.util.UUID;
 
+import static com.google.common.base.Preconditions.*;
+
 /**
  * 
  * @author jbrukh
@@ -20,7 +22,7 @@ final class DeleteOrderModification extends Modification {
 	 * @param order
 	 */
 	public DeleteOrderModification(UUID orderId) {
-		super(orderId);
+		checkNotNull(orderId);
 		this.orderId = orderId; 
 	}
 

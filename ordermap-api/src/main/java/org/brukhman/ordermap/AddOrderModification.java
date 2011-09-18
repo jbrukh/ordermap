@@ -1,9 +1,6 @@
 package org.brukhman.ordermap;
 
-import java.util.Map;
-import java.util.UUID;
-
-import com.google.common.collect.SetMultimap;
+import static com.google.common.base.Preconditions.*;
 
 final class AddOrderModification extends Modification {
 
@@ -18,7 +15,7 @@ final class AddOrderModification extends Modification {
 	 * @param order
 	 */
 	public AddOrderModification(Order order) {
-		super(order.getId());
+		checkNotNull(order);
 		this.order = order;
 	}
 

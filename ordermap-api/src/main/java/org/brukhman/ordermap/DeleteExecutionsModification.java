@@ -1,12 +1,10 @@
 package org.brukhman.ordermap;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import static com.google.common.base.Preconditions.*;
 
-import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 final class DeleteExecutionsModification extends Modification {
@@ -23,7 +21,7 @@ final class DeleteExecutionsModification extends Modification {
 	 * @param order
 	 */
 	public DeleteExecutionsModification(UUID orderId, Iterable<UUID> executionIds) {
-		super(orderId);
+		checkNotNull(orderId);
 		checkNotNull(executionIds);
 		this.executionIds = Sets.newHashSet(executionIds);
 		this.orderId = orderId;
