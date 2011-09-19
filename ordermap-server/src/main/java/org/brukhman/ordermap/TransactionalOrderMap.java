@@ -8,9 +8,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import static com.google.common.base.Preconditions.*;
 import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.ILock;
+import com.hazelcast.core.ITopic;
 
 /**
  * The {@link TransactionalOrderMap} provides the interface
@@ -21,7 +26,7 @@ import com.hazelcast.core.Hazelcast;
  * @author jbrukh
  *
  */
-public final class TransactionalOrderMap implements StateReader {
+public final class TransactionalOrderMap {
 	
 	// tom instance
 	private static TransactionalOrderMap tom;
@@ -29,15 +34,42 @@ public final class TransactionalOrderMap implements StateReader {
 	
 	// where the data is stored
 	private final OrderState state;
-	private final BlockingQueue<Modification> broadcastQueue = 
+	private final BlockingQueue<Modification> workQueue = 
 			new ArrayBlockingQueue<Modification>(10000);
 	
-	// listeners
-	private final CopyOnWriteArrayList<Modification.Listener> listeners = 
-			new CopyOnWriteArrayList<Modification.Listener>();
-	
 	private final ExecutorService executor = Executors.newSingleThreadExecutor();
-
+	private final ITopic<Modification> modificationTopic;
+	private final ILock distributedLock;
+	
+	// logging
+	private final static Logger logger = LoggerFactory.getLogger(TransactionalOrderMap.class);
+	
+	
+	/**
+	 * Processes incoming modifications and broadcasts them
+	 * over Hazelcast.
+	 */
+	private final Runnable workerRunnable = new Runnable() {
+		@Override
+		public void run() {
+			while(!Thread.interrupted()) {
+				try {
+					Modification modification = workQueue.take();
+					distributedLock.lock();
+					try {
+						modification.modify(state);
+						logger.info("Applied modification: {}", modification);
+						modificationTopic.publish(modification);
+					} finally {
+						distributedLock.unlock();
+					}
+					
+				} catch (InterruptedException e) {}
+			}
+		}
+		
+	};
+	
 	/**
 	 * Get the TOM.
 	 * 
@@ -57,16 +89,15 @@ public final class TransactionalOrderMap implements StateReader {
 	 * 
 	 */
 	private TransactionalOrderMap() {
-		state = new HashMapOrderState( 
+		state = new MapBasedOrderState( 
 							Hazelcast.<UUID, Order> getMap("orderMap"),
 							Hazelcast.<UUID, Execution> getMap("executionMap")
 							);
 		
+		modificationTopic = Hazelcast.getTopic("modificationTopic");
+		distributedLock = Hazelcast.getLock("downloadLock");
 		
-		
-		// start a separate thread that broadcasts modifications to
-		// listeners for asynchronous replication
-		executor.execute(broadcastRunnable);
+		executor.execute(workerRunnable);
 	}
 	
 	/**
@@ -75,9 +106,7 @@ public final class TransactionalOrderMap implements StateReader {
 	 * @param order
 	 */
 	final void addOrder(Order order) {
-		applyAndBroadcast(
-				new AddOrderModification(order)
-				);
+				new AddOrderModification(order).modify(state);
 	}
 	
 	/**
@@ -86,9 +115,7 @@ public final class TransactionalOrderMap implements StateReader {
 	 * @param orderId
 	 */
 	final void deleteOrder(UUID orderId) {
-		applyAndBroadcast(
-				new DeleteOrderModification(orderId)
-				);
+				new DeleteOrderModification(orderId).modify(state);
 	}
 	
 	/**
@@ -97,9 +124,7 @@ public final class TransactionalOrderMap implements StateReader {
 	 * @param execution
 	 */
 	final void addExecution(Execution execution) {
-		applyAndBroadcast(
-				new AddExecutionModification(execution)
-				);
+				new AddExecutionModification(execution).modify(state);
 	}
 	
 	/**
@@ -111,9 +136,7 @@ public final class TransactionalOrderMap implements StateReader {
 		Execution execution = state.getExecution(executionId);
 		checkNotNull(executionId);
 		
-		applyAndBroadcast(
-				new DeleteExecutionsModification(execution.getOrderId(), executionId)
-				);
+		new DeleteExecutionsModification(execution.getOrderId(), executionId);
 	}
 	
 	public List<Order> getOrders() {
@@ -123,51 +146,6 @@ public final class TransactionalOrderMap implements StateReader {
 	public List<Execution> getExecutions() {
 		return state.getExecutions();
 	}
-
-	/**
-	 * Apply the modification and broadcast it.
-	 * 
-	 * @param modification
-	 */
-	private final void applyAndBroadcast(Modification modification) {
-		modification.modify(state);
-		broadcastQueue.add(modification);
-	}
-	
-	/**
-	 * Add a listener for modifications.
-	 * 
-	 * @param listener
-	 */
-	public final void addListener(Modification.Listener listener) {
-		listeners.add(listener);
-	}
-	
-	/**
-	 * Remove a listener for modifications.
-	 * 
-	 * @param listener
-	 */
-	public final void removeListener(Modification.Listener listener) {
-		listeners.remove(listener);
-	}
-	
-	/**
-	 * 
-	 */
-	private final Runnable broadcastRunnable = new Runnable() {
-		public void run() {			
-			while(!Thread.interrupted()) {
-				try {
-					Modification modification = broadcastQueue.take();
-					for (Modification.Listener listener : listeners) {
-						listener.modificationOccurred(modification);
-					}
-				} catch (InterruptedException e) {}
-			}
-			
-		}
-	};
 
 	public Order getOrder(UUID id) {
 		return state.getOrder(id);

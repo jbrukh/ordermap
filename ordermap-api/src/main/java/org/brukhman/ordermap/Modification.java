@@ -1,7 +1,7 @@
 package org.brukhman.ordermap;
 
 /**
- * A modification of an {@link HashMapOrderState}.
+ * A modification of an {@link MapBasedOrderState}.
  *  
  * @author jbrukh
  *

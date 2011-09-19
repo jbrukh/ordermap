@@ -13,7 +13,7 @@ public class AddExecutionModificationTest {
 	private final static Order order = new Order("AAPL");
 	private final static Execution execution = new Execution(order.getId(), 100, 
 									BigDecimal.valueOf(200.00d));
-	private final HashMapOrderState state = new HashMapOrderState();
+	private final MapBasedOrderState state = new MapBasedOrderState();
 
 	@Before
 	public void setUp() throws Exception {

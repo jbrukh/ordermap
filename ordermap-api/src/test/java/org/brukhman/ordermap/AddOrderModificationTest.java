@@ -10,7 +10,7 @@ public class AddOrderModificationTest {
 	
 	@Test
 	public void test() {
-		HashMapOrderState state = new HashMapOrderState();
+		MapBasedOrderState state = new MapBasedOrderState();
 		
 		new AddOrderModification(order).modify(state);
 		assertTrue(state.orders.containsKey(order.getId()));

@@ -1,11 +1,16 @@
 package org.brukhman.ordermap;
 
+import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.collect.Maps;
 import com.hazelcast.core.EntryEvent;
 import com.hazelcast.core.EntryListener;
 import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.ILock;
 import com.hazelcast.core.IMap;
+import com.hazelcast.core.ITopic;
+import com.hazelcast.core.MessageListener;
 
 /**
  * This is a hub for subscriptions to order-related
@@ -18,6 +23,13 @@ public final class ReplicatedOrderMap {
 	private static ReplicatedOrderMap rom;
 	private final static Object lock = new Object();
 	
+	private MapBasedOrderState orderState;
+	
+	/**
+	 * Get the instance.
+	 * 
+	 * @return
+	 */
 	public final ReplicatedOrderMap getInstance() {
 		synchronized(lock) {
 			if (rom == null) {
@@ -27,65 +39,44 @@ public final class ReplicatedOrderMap {
 		}
 	}
 	
+	/**
+	 * Create a new instance.
+	 * 
+	 */
 	private ReplicatedOrderMap() {
-		IMap<UUID, Order> orders = Hazelcast.getMap("orderMap");
-		IMap<UUID, Execution> executions = Hazelcast.getMap("executionMap");
-		
-		orders.addEntryListener(orderMapListener, false);
-		executions.addEntryListener(executionMapListener, false);
+		init();
 	}
 	
 	/**
-	 * Listener for the order map.
+	 * Download the remote maps in a single transaction.
 	 */
-	private final static EntryListener<UUID, Order> orderMapListener = new EntryListener<UUID, Order>() {
+	private final void init() {
+		// this is the shared memory
+		IMap<UUID, Order> distributedOrders = Hazelcast.getMap("orderMap");
+		IMap<UUID, Execution> distributedExecutions = Hazelcast.getMap("executionMap");
 
-		public void entryAdded(EntryEvent<UUID, Order> event) {
-			// TODO Auto-generated method stub
+		// download all the orders
+		ILock distributedLock = Hazelcast.getLock("downloadLock");
+		distributedLock.lock();
+		try {
+			Map<UUID, Order> orders = Maps.newHashMap(distributedOrders);
+			Map<UUID, Execution> executions = Maps.newHashMap(distributedExecutions);
+			orderState = new MapBasedOrderState(orders, executions);
 			
+			// listen to modifications
+			ITopic<Modification> topic = Hazelcast.getTopic("modificationTopic");
+			topic.addMessageListener(modificationListener);
+		} finally {
+			distributedLock.unlock();
 		}
+	}
 
-		public void entryRemoved(EntryEvent<UUID, Order> event) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		public void entryUpdated(EntryEvent<UUID, Order> event) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		public void entryEvicted(EntryEvent<UUID, Order> event) {
-			// TODO Auto-generated method stub
-			
+	private final MessageListener<Modification> modificationListener = 
+			new MessageListener<Modification>() {
+		@Override
+		public void onMessage(Modification modification) {
+			modification.modify(orderState);
 		}
 	};
-	
-	/**
-	 * Listener for the order map.
-	 */
-	private final static EntryListener<UUID, Execution> executionMapListener = new EntryListener<UUID, Execution>() {
 
-		public void entryAdded(EntryEvent<UUID, Execution> event) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		public void entryRemoved(EntryEvent<UUID, Execution> event) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		public void entryUpdated(EntryEvent<UUID, Execution> event) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		public void entryEvicted(EntryEvent<UUID, Execution> event) {
-			// TODO Auto-generated method stub
-			
-		}
-
-	};
-	
 }
