@@ -1,10 +1,16 @@
 package org.brukhman.ordermap;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-public final class Execution {
+public final class Execution implements Serializable {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 5151001643485375323L;
+	
 	private final UUID id;
 	private final UUID orderId;
 	private final int quantity;

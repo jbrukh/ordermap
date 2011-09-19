@@ -3,6 +3,9 @@ package org.brukhman.ordermap;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Maps;
 import com.hazelcast.core.EntryEvent;
 import com.hazelcast.core.EntryListener;
@@ -22,6 +25,7 @@ public final class ReplicatedOrderMap {
 
 	private static ReplicatedOrderMap rom;
 	private final static Object lock = new Object();
+	private final static Logger logger = LoggerFactory.getLogger(ReplicatedOrderMap.class);
 	
 	private MapBasedOrderState orderState;
 	
@@ -30,7 +34,7 @@ public final class ReplicatedOrderMap {
 	 * 
 	 * @return
 	 */
-	public final ReplicatedOrderMap getInstance() {
+	public final static ReplicatedOrderMap getInstance() {
 		synchronized(lock) {
 			if (rom == null) {
 				rom = new ReplicatedOrderMap();
@@ -55,6 +59,7 @@ public final class ReplicatedOrderMap {
 		IMap<UUID, Order> distributedOrders = Hazelcast.getMap("orderMap");
 		IMap<UUID, Execution> distributedExecutions = Hazelcast.getMap("executionMap");
 
+		logger.info("Downloading state...");
 		// download all the orders
 		ILock distributedLock = Hazelcast.getLock("downloadLock");
 		distributedLock.lock();
@@ -68,6 +73,10 @@ public final class ReplicatedOrderMap {
 			topic.addMessageListener(modificationListener);
 		} finally {
 			distributedLock.unlock();
+		}
+		logger.info("Done...");
+		for (Order order : orderState.getOrders()) {
+			logger.info("Order: {}", order);
 		}
 	}
 

@@ -1,12 +1,14 @@
 package org.brukhman.ordermap;
 
+import java.io.Serializable;
+
 /**
  * A modification of an {@link MapBasedOrderState}.
  *  
  * @author jbrukh
  *
  */
-interface Modification {
+interface Modification extends Serializable {
 	
 	/**
 	 * User must fill in the action. Any action undertaken

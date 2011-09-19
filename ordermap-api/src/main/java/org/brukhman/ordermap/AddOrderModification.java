@@ -23,5 +23,9 @@ final class AddOrderModification implements Modification {
 	public void modify(OrderState state) {
 		state.put(order.getId(), order);
 	}
+	
+	public String toString() {
+		return "{Adding " + order + "}";
+	}
 
 }

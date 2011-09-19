@@ -1,5 +1,6 @@
 package org.brukhman.ordermap;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 import com.google.common.base.Preconditions;
@@ -10,7 +11,12 @@ import com.google.common.base.Preconditions;
  * @author jbrukh
  *
  */
-public final class Order {
+public final class Order implements Serializable {
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 2215435082862019293L;
 	
 	private final String security;
 	private final UUID id;
@@ -59,5 +65,9 @@ public final class Order {
 	 */
 	public final boolean isDeleted() {
 		return isDeleted;
+	}
+	
+	public String toString() {
+		return id.toString() + "/" + security;
 	}
 }

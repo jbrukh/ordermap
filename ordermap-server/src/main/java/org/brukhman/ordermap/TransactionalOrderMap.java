@@ -75,7 +75,7 @@ public final class TransactionalOrderMap {
 	 * 
 	 * @return
 	 */
-	public final TransactionalOrderMap getInstance() {
+	public static final TransactionalOrderMap getInstance() {
 		synchronized(lock) {
 			if (tom == null) {
 				tom = new TransactionalOrderMap();
@@ -100,13 +100,22 @@ public final class TransactionalOrderMap {
 		executor.execute(workerRunnable);
 	}
 	
+	private final void queueUp(Modification modification) {
+		// TODO: make sure it goes in...
+		try {
+			workQueue.put(modification);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	/**
 	 * Add a new order object.
 	 * 
 	 * @param order
 	 */
 	final void addOrder(Order order) {
-				new AddOrderModification(order).modify(state);
+		queueUp(new AddOrderModification(order));
 	}
 	
 	/**
@@ -115,7 +124,7 @@ public final class TransactionalOrderMap {
 	 * @param orderId
 	 */
 	final void deleteOrder(UUID orderId) {
-				new DeleteOrderModification(orderId).modify(state);
+		queueUp(new DeleteOrderModification(orderId));
 	}
 	
 	/**
@@ -124,7 +133,7 @@ public final class TransactionalOrderMap {
 	 * @param execution
 	 */
 	final void addExecution(Execution execution) {
-				new AddExecutionModification(execution).modify(state);
+		queueUp(new AddExecutionModification(execution));
 	}
 	
 	/**
@@ -135,8 +144,7 @@ public final class TransactionalOrderMap {
 	final void deleteExecution(UUID executionId) {
 		Execution execution = state.getExecution(executionId);
 		checkNotNull(executionId);
-		
-		new DeleteExecutionsModification(execution.getOrderId(), executionId);
+		queueUp(new DeleteExecutionsModification(execution.getOrderId(), executionId));
 	}
 	
 	public List<Order> getOrders() {
