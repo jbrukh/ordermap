@@ -9,7 +9,7 @@ import static com.google.common.base.Preconditions.*;
  * @author jbrukh
  *
  */
-final class DeleteOrderModification extends Modification {
+final class DeleteOrderModification implements Modification {
 
 	/**
 	 * The order being added.

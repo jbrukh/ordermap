@@ -1,30 +1,12 @@
 package org.brukhman.ordermap;
 
 /**
- * Base class for modifications.
- * 
+ * A modification of an {@link HashMapOrderState}.
+ *  
  * @author jbrukh
  *
  */
-abstract class Modification {
-	
-	/**
-	 * Create a new instance.
-	 * 
-	 * @param orderId
-	 */
-	Modification() {
-	}
-	
-	/**
-	 * Synchronizes onto the string representation of the
-	 * lock object.
-	 * 
-	 * @param order2exec TODO
-	 */
-	final void applyTo(OrderState state) {		
-			modify(state);
-	}
+interface Modification {
 	
 	/**
 	 * User must fill in the action. Any action undertaken

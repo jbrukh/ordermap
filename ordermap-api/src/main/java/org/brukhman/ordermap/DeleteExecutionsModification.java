@@ -7,7 +7,7 @@ import static com.google.common.base.Preconditions.*;
 
 import com.google.common.collect.Sets;
 
-final class DeleteExecutionsModification extends Modification {
+final class DeleteExecutionsModification implements Modification {
 
 	/**
 	 * The order being added.

@@ -2,7 +2,7 @@ package org.brukhman.ordermap;
 
 import static com.google.common.base.Preconditions.*;
 
-final class AddOrderModification extends Modification {
+final class AddOrderModification implements Modification {
 
 	/**
 	 * The order being added.

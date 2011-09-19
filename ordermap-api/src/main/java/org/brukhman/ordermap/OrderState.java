@@ -1,199 +1,86 @@
 package org.brukhman.ordermap;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static com.google.common.base.Preconditions.*;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
-import com.hazelcast.core.Hazelcast;
 
 /**
+ * Represents the state of data objects. All operations upon them
+ * and synchronization of interactions is encapsulated within such
+ * a state. All data id resolution happens from this state.
  * 
- * @author jbrukh
+ * @author ybrukhma
  *
  */
-final class OrderState implements StateReader {
-
-	// main data objects
-	final Map<UUID, Order> 		orders;
-	final Map<UUID, Execution> 	executions;
-
-	// indices on the data objects that define
-	// child relationships
-	final SetMultimap<UUID, UUID> order2exec;
-
-	final ReadWriteLock lock = new ReentrantReadWriteLock();
-
+interface OrderState {
 
 	/**
-	 * Create a new, basic instance.
+	 * Put a new execution into the state.
+	 * 
+	 * @param id
+	 * @param execution
 	 */
-	OrderState(Map<UUID, Order> orders, Map<UUID, Execution> executions) {
-		checkNotNull(orders);
-		checkNotNull(executions);
-		this.orders = orders;
-		this.executions = executions;
-
-		// TODO: must index here!
-		this.order2exec = LinkedHashMultimap.create();
-	}
+	public abstract void put(UUID id, Execution execution);
 
 	/**
-	 * Create a new instance with empty state.
+	 * Put a new order into the state.
+	 * 
+	 * @param id
+	 * @param order
 	 */
-	public OrderState() {
-		this(	
-				Maps.<UUID, Order>newHashMap(), 
-				Maps.<UUID, Execution>newHashMap()
-				);
-	}
+	public abstract void put(UUID id, Order order);
 
-	/* (non-Javadoc)
-	 * @see org.brukhman.ordermap.State#put(java.util.UUID, org.brukhman.ordermap.Execution)
+	/**
+	 * Resolve an order.
+	 * 
+	 * @param id
+	 * @return
 	 */
-	public final void put(UUID id, Execution execution) {
-		lock.writeLock().lock();
-		try {
-			UUID orderId = execution.getOrderId();
-			UUID executionId = execution.getId();
+	public abstract Order getOrder(UUID id);
 
-			Preconditions.checkState(orders.containsKey(orderId), 
-					"No parent order found for this execution.");
-
-			executions.put(id, execution);
-			order2exec.put(orderId, executionId);
-		} finally {
-			lock.writeLock().unlock();
-		}
-	}
-
-	/* (non-Javadoc)
-	 * @see org.brukhman.ordermap.State#put(java.util.UUID, org.brukhman.ordermap.Order)
+	/**
+	 * Resolve an execution.
+	 * 
+	 * @param id
+	 * @return
 	 */
-	public final void put(UUID id, Order order) {
-		lock.writeLock().lock();
-		try {
-			orders.put(id, order);
-		} finally {
-			lock.writeLock().lock();
-		}
-	}
+	public abstract Execution getExecution(UUID id);
 
-	/* (non-Javadoc)
-	 * @see org.brukhman.ordermap.State#getOrder(java.util.UUID)
+	/**
+	 * Get the master list of orders.
+	 * 
+	 * @return
 	 */
-	public final Order getOrder(UUID id) {
-		lock.readLock().lock();
-		try {
-			return orders.get(id);
-		} finally {
-			lock.readLock().unlock();
-		}
-	}
+	public abstract List<Order> getOrders();
 
-
-	/* (non-Javadoc)
-	 * @see org.brukhman.ordermap.State#getExecution(java.util.UUID)
+	/**
+	 * Get the master list of executions.
+	 * 
+	 * @return
 	 */
-	public final Execution getExecution(UUID id) {
-		lock.readLock().lock();
-		try {
-			return executions.get(id);
-		} finally {
-			lock.readLock().unlock();
-		}
-	}
+	public abstract List<Execution> getExecutions();
 
-	/* (non-Javadoc)
-	 * @see org.brukhman.ordermap.State#getOrders()
+	/**
+	 * Delete executions.
+	 * 
+	 * @param orderId
+	 * @param executionIds
 	 */
-	public final List<Order> getOrders() {
-		lock.readLock().lock();
-		try {
-			return Lists.newArrayList(orders.values());
-		} finally {
-			lock.readLock().unlock();
-		}
-	}
+	public abstract void deleteExecutions(UUID orderId, Set<UUID> executionIds);
 
-	/* (non-Javadoc)
-	 * @see org.brukhman.ordermap.State#getExecutions()
+	/**
+	 * Delete a single execution (convenience method).
+	 * 
+	 * @param orderId
+	 * @param executionId
 	 */
-	public final List<Execution> getExecutions() {
-		lock.readLock().lock();
-		try {
-			return Lists.newArrayList(executions.values());
-		} finally {
-			lock.readLock().unlock();
-		}
-	}
+	public abstract void deleteExecution(UUID orderId, UUID executionId);
 
-	/* (non-Javadoc)
-	 * @see org.brukhman.ordermap.State#deleteExecutions(java.util.UUID, java.util.Set)
+	/**
+	 * Delete an order.
+	 * 
+	 * @param orderId
 	 */
-	public final void deleteExecutions(UUID orderId, Set<UUID> executionIds) {
-		lock.writeLock().lock();
-		try {
-			// resolve these executions and validate
-			Map<UUID, Execution> resolvedExecutions = Modificiations.resolve(executionIds, executions);
+	public abstract void deleteOrder(UUID orderId);
 
-			// collect the modified executions
-			for (Execution execution : resolvedExecutions.values()) {
-				Execution deletedExecution = new Execution(execution);
-				checkState(execution.getOrderId() == orderId, 
-						"This execution is not from the specified order: " + execution);
-				deletedExecution.isDeleted = true;
-
-				// put it in the map, replacing the old versions
-				resolvedExecutions.put(execution.getId(), execution);
-			}
-			executions.putAll(resolvedExecutions);
-		} finally {
-			lock.writeLock().unlock();
-		}
-
-	}
-
-	/* (non-Javadoc)
-	 * @see org.brukhman.ordermap.State#deleteExecution(java.util.UUID, java.util.UUID)
-	 */
-	public final void deleteExecution(UUID orderId, UUID executionId) {
-		deleteExecutions(orderId, Sets.newHashSet(executionId));
-	}
-
-	/* (non-Javadoc)
-	 * @see org.brukhman.ordermap.State#deleteOrder(java.util.UUID)
-	 */
-	public final void deleteOrder(UUID orderId) {
-		lock.writeLock().lock();
-		try {
-			Order original = orders.get(orderId);
-			checkNotNull(original);
-
-			// create a deleted version
-			Order order = new Order(original);
-			order.isDeleted = true;
-
-			// supersedes the previous version
-			orders.put(order.getId(), order);
-
-			// find the child executions
-			Set<UUID> children = order2exec.get(orderId);
-
-			deleteExecutions(orderId, children); // no Exception thrown here, because children guaranteed by logic
-		} finally {
-			lock.writeLock().unlock();
-		}
-	}
 }

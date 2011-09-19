@@ -13,7 +13,7 @@ public class AddExecutionModificationTest {
 	private final static Order order = new Order("AAPL");
 	private final static Execution execution = new Execution(order.getId(), 100, 
 									BigDecimal.valueOf(200.00d));
-	private final OrderState state = new OrderState();
+	private final HashMapOrderState state = new HashMapOrderState();
 
 	@Before
 	public void setUp() throws Exception {
@@ -25,12 +25,12 @@ public class AddExecutionModificationTest {
 		// different order
 		Execution foreign = new Execution(UUID.randomUUID(), 100, 
 				BigDecimal.valueOf(200.00d));
-		new AddExecutionModification(foreign).applyTo(state);
+		new AddExecutionModification(foreign).modify(state);
 	}
 	
 	@Test
 	public void testAdd() {
-		new AddExecutionModification(execution).applyTo(state);
+		new AddExecutionModification(execution).modify(state);
 		assertTrue(state.orders.size()==1);
 		assertTrue(state.executions.size()==1);
 		assertTrue(state.executions.containsKey(execution.getId()));

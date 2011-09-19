@@ -57,7 +57,7 @@ public final class TransactionalOrderMap implements StateReader {
 	 * 
 	 */
 	private TransactionalOrderMap() {
-		state = new OrderState( 
+		state = new HashMapOrderState( 
 							Hazelcast.<UUID, Order> getMap("orderMap"),
 							Hazelcast.<UUID, Execution> getMap("executionMap")
 							);
@@ -130,7 +130,7 @@ public final class TransactionalOrderMap implements StateReader {
 	 * @param modification
 	 */
 	private final void applyAndBroadcast(Modification modification) {
-		modification.applyTo(state);
+		modification.modify(state);
 		broadcastQueue.add(modification);
 	}
 	
