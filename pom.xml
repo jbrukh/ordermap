@@ -38,6 +38,11 @@
   		<version>1.9.0-rc1</version>
   		<scope>test</scope>
   	</dependency>
+  	<dependency>
+  		<groupId>oracle</groupId>
+  		<artifactId>coherence</artifactId>
+  		<version>3.7.0.0b23397</version>
+  	</dependency>
   </dependencies>
   
   <build>
